@@ -13,18 +13,48 @@ const IFRAME_DUR = 20;
 const DAD_DMG = 15;
 const ARGUS_DMG = 10;
 const MAX_HP = 100;
+const ACCEL = 0.55;
+const FRICTION = 0.82;
+const AIR_ACCEL = 0.3;
+const AIR_FRICTION = 0.88;
 
 const ground = { x: 0, y: 568, w: 960, h: 72 };
-const platforms = [
-  ground,
-  { x: 30,  y: 458, w: 180, h: 14 },
-  { x: 390, y: 458, w: 180, h: 14 },
-  { x: 750, y: 458, w: 180, h: 14 },
-  { x: 70,  y: 335, w: 140, h: 14 },
-  { x: 410, y: 335, w: 140, h: 14 },
-  { x: 750, y: 335, w: 140, h: 14 },
-  { x: 430, y: 212, w: 100, h: 14 },
+const LAYOUTS = [
+  { // Open — two edge platforms + wide center high
+    name: 'Open',
+    platforms: [
+      { x: 10,  y: 470, w: 240, h: 14 },   // low left
+      { x: 710, y: 470, w: 240, h: 14 },   // low right
+      { x: 330, y: 340, w: 300, h: 14 },   // high center
+    ]
+  },
+  { // Stadium — two tiers at edges
+    name: 'Stadium',
+    platforms: [
+      { x: 10,  y: 465, w: 240, h: 14 },   // low left
+      { x: 710, y: 465, w: 240, h: 14 },   // low right
+      { x: 70,  y: 360, w: 200, h: 14 },   // mid left
+      { x: 690, y: 360, w: 200, h: 14 },   // mid right
+    ]
+  },
+  { // Arena — two low edges + one wide high
+    name: 'Arena',
+    platforms: [
+      { x: 10,  y: 460, w: 240, h: 14 },   // low left
+      { x: 710, y: 460, w: 240, h: 14 },   // low right
+      { x: 340, y: 350, w: 280, h: 14 },   // high center
+    ]
+  },
+  { // Plaza — ground only with two low edges
+    name: 'Plaza',
+    platforms: [
+      { x: 10,  y: 460, w: 240, h: 14 },   // low left
+      { x: 710, y: 460, w: 240, h: 14 },   // low right
+    ]
+  },
 ];
+
+let platforms = [ground];
 
 // ---------- Sprite loading ----------
 const WAD = {  // Wad of sprites
@@ -74,14 +104,14 @@ function makePlayer(x, y, w, h, speed, color, label, jumpKey, scale) {
     cooldown: 0, iframe: 0,
     knockbackX: 0, knockbackY: 0,
     squash: 0,
-    vy: 0, onGround: false,
+    vx: 0, vy: 0, onGround: false,
     facing: 1,
     anim: 'idle', animFrame: 0, animTimer: 0
   };
 }
 
-const DAD = makePlayer(160, 400, 44, 44, 3, '#2266cc', 'Dad', 'w', 0.3);
-const ARGUS = makePlayer(760, 400, 32, 32, 4.5, '#cc4422', 'Argus', 'arrowup', 0.5);
+const DAD = makePlayer(160, 400, 44, 44, 2.0, '#2266cc', 'Dad', 'w', 0.3);
+const ARGUS = makePlayer(760, 400, 32, 32, 4.0, '#cc4422', 'Argus', 'arrowup', 0.5);
 
 const keys = new Set();
 
@@ -97,15 +127,22 @@ document.addEventListener('keyup', e => {
 });
 
 // ---------- Audio ----------
-// Add new fart-*.wav files to assets/sounds/ and add the path here
+// Add new fart files to assets/sounds/ and add the path here
 const fartSounds = [
+  // User-provided splats
   'assets/sounds/fart-sound.wav',
   'assets/sounds/fart-quick-splat-2890.wav',
   'assets/sounds/fart-or-splat.wav',
   'assets/sounds/fart-fast-splat-2889.wav',
   'assets/sounds/fart-accident-fart-3041.wav',
+  // dklon (CC-BY 3.0)
   'assets/sounds/whoopee_1.wav',
   'assets/sounds/whoopee_2.wav',
+  // Tsoding / Pixabay (Unlicense)
+  'assets/sounds/fart-4-228244-fixed-crit.flac',
+  'assets/sounds/fart-83471-fixed-regular.flac',
+  'assets/sounds/fart-paulstretched.flac',
+  'assets/sounds/fart-paulstretched-evil.flac',
 ];
 
 function playRandom(list) {
@@ -122,32 +159,44 @@ const particles = [];
 const fartRings = [];
 
 function spawnFartCloud(cx, cy, color) {
-  for (let i = 0; i < 20; i++) {
+  for (let i = 0; i < 35; i++) {
     const angle = Math.random() * Math.PI * 2;
-    const speed = 0.5 + Math.random() * 2.5;
+    const speed = 1 + Math.random() * 3.5;
     particles.push({
-      x: cx, y: cy,
+      x: cx + (Math.random() - 0.5) * 8, y: cy + (Math.random() - 0.5) * 8,
       vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed - 0.5,
-      life: 30 + Math.random() * 20, maxLife: 50,
-      size: 6 + Math.random() * 10, color
+      vy: Math.sin(angle) * speed - 1,
+      life: 50 + Math.random() * 30, maxLife: 80,
+      size: 7 + Math.random() * 12, color
+    });
+  }
+  for (let i = 0; i < 10; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    particles.push({
+      x: cx + (Math.random() - 0.5) * 10, y: cy + (Math.random() - 0.5) * 10,
+      vx: Math.cos(angle) * (0.2 + Math.random() * 0.5),
+      vy: Math.sin(angle) * (0.2 + Math.random() * 0.5) - 0.3,
+      life: 90 + Math.random() * 40, maxLife: 130,
+      size: 16 + Math.random() * 18, color
     });
   }
 }
 
 function spawnFartRing(cx, cy, color) {
-  fartRings.push({ x: cx, y: cy, radius: 0, maxRadius: 60 + Math.random() * 20, life: 20, maxLife: 20, color });
+  fartRings.push({ x: cx, y: cy, radius: 8, maxRadius: 110 + Math.random() * 30, life: 40, maxLife: 40, color, lw: 5 });
+  fartRings.push({ x: cx, y: cy, radius: 4, maxRadius: 80 + Math.random() * 20, life: 28, maxLife: 28, color: '#ff6', lw: 2 });
 }
 
 function updateParticles() {
   for (let i = particles.length - 1; i >= 0; i--) {
     const p = particles[i];
-    p.x += p.vx; p.y += p.vy; p.vy += 0.04;
+    p.x += p.vx; p.y += p.vy; p.vy += 0.02;
+    if (p.life < p.maxLife * 0.3) p.vx *= 0.97;
     if (--p.life <= 0) particles.splice(i, 1);
   }
   for (let i = fartRings.length - 1; i >= 0; i--) {
     const r = fartRings[i];
-    r.radius += (r.maxRadius - r.radius) * 0.15;
+    r.radius += (r.maxRadius - r.radius) * 0.18;
     if (--r.life <= 0) fartRings.splice(i, 1);
   }
 }
@@ -155,17 +204,17 @@ function updateParticles() {
 function drawParticles() {
   for (const p of particles) {
     const a = p.life / p.maxLife;
-    ctx.globalAlpha = a * 0.65;
+    ctx.globalAlpha = Math.min(a * 0.8, 0.7);
     ctx.fillStyle = p.color;
     ctx.beginPath();
-    ctx.arc(p.x, p.y, p.size * (0.5 + 0.5 * a), 0, Math.PI * 2);
+    ctx.arc(p.x, p.y, p.size * (0.3 + 0.7 * a), 0, Math.PI * 2);
     ctx.fill();
   }
   for (const r of fartRings) {
     const a = r.life / r.maxLife;
-    ctx.globalAlpha = a * 0.5;
+    ctx.globalAlpha = Math.min(a * 1.2, 0.6);
     ctx.strokeStyle = r.color;
-    ctx.lineWidth = 3;
+    ctx.lineWidth = r.lw || 3;
     ctx.beginPath();
     ctx.arc(r.x, r.y, r.radius, 0, Math.PI * 2);
     ctx.stroke();
@@ -175,11 +224,12 @@ function drawParticles() {
 
 // ---------- Screen shake ----------
 let shakeX = 0, shakeY = 0, shakeDur = 0;
-function triggerShake() { shakeDur = 8; }
+function triggerShake() { shakeDur = 14; }
 function updateShake() {
   if (shakeDur > 0) {
-    shakeX = (Math.random() - 0.5) * 10;
-    shakeY = (Math.random() - 0.5) * 10;
+    const intensity = shakeDur / 14;
+    shakeX = (Math.random() - 0.5) * 12 * intensity;
+    shakeY = (Math.random() - 0.5) * 12 * intensity;
     shakeDur--;
   } else { shakeX = 0; shakeY = 0; }
 }
@@ -399,8 +449,21 @@ function applyPhysics(p) {
   if (dx < 0) p.facing = -1;
   else if (dx > 0) p.facing = 1;
 
-  p.knockbackX *= 0.8;
-  p.knockbackY *= 0.8;
+  // Smooth acceleration / friction
+  const onGround = p.onGround;
+  const accel = onGround ? ACCEL : AIR_ACCEL;
+  const friction = onGround ? FRICTION : AIR_FRICTION;
+  const targetVx = dx * p.speed;
+  if (targetVx !== 0) {
+    if (p.vx < targetVx) p.vx = Math.min(p.vx + accel, targetVx);
+    else if (p.vx > targetVx) p.vx = Math.max(p.vx - accel, targetVx);
+  } else {
+    p.vx *= friction;
+    if (Math.abs(p.vx) < 0.05) p.vx = 0;
+  }
+
+  p.knockbackX *= 0.85;
+  p.knockbackY *= 0.85;
   if (Math.abs(p.knockbackX) < 0.1) p.knockbackX = 0;
   if (Math.abs(p.knockbackY) < 0.1) p.knockbackY = 0;
 
@@ -412,7 +475,7 @@ function applyPhysics(p) {
   p.vy += GRAVITY;
   if (p.vy > 12) p.vy = 12;
 
-  const mx = dx * p.speed + p.knockbackX;
+  const mx = p.vx + p.knockbackX;
   p.x += mx;
   if (p.x < 0) p.x = 0;
   if (p.x + p.w > W) p.x = W - p.w;
@@ -479,10 +542,20 @@ let dadRounds = 0;
 let argusRounds = 0;
 let gameState = 'start';
 let roundTimer = 0;
+let currentLayout = null;
+
+function pickLayout() {
+  const layout = LAYOUTS[Math.floor(Math.random() * LAYOUTS.length)];
+  currentLayout = layout;
+  currentBg = BGS[Math.floor(Math.random() * BGS.length)];
+  platforms = [ground, ...layout.platforms];
+}
 
 function resetRound() {
+  pickLayout();
   DAD.x = 160; DAD.y = 400;
   ARGUS.x = 760; ARGUS.y = 400;
+  DAD.vx = 0; ARGUS.vx = 0;
   DAD.vy = 0; ARGUS.vy = 0;
   DAD.onGround = false; ARGUS.onGround = false;
   DAD.hp = MAX_HP; ARGUS.hp = MAX_HP;
@@ -522,15 +595,119 @@ function update() {
   }
 }
 
-// ---------- Drawing ----------
+// ---------- Backgrounds ----------
+const BGS = [
+  { // Park — green grass
+    sky: '#3a7d44', ground: '#4a3520', groundTop: '#5a4530',
+    plat: '#5a3a1a', platTop: '#7a5a2a', platBorder: '#3a2a0a',
+    name: 'Park', decor(ctx) {
+      ctx.fillStyle = '#4a8a54';
+      for (let i = 0; i < 14; i++) {
+        const bx = (i * 70 + 13) % W;
+        ctx.fillRect(bx, 480 + (i % 3) * 28, 2, 6 + (i % 4) * 2);
+      }
+    }
+  },
+  { // Backyard — darker earth
+    sky: '#5a6b3a', ground: '#4a3520', groundTop: '#6b5030',
+    plat: '#4a3020', platTop: '#6a4a30', platBorder: '#2a1a0a',
+    name: 'Backyard', decor(ctx) {
+      ctx.fillStyle = '#3a5a2a';
+      for (let i = 0; i < 6; i++) {
+        const bx = (i * 160 + 40) % W;
+        ctx.beginPath(); ctx.arc(bx + 15, 460, 14, Math.PI, 0); ctx.fill();
+      }
+      ctx.fillStyle = '#6a5040';
+      for (let i = 0; i < 8; i++) {
+        ctx.fillRect(40 + i * 120, 470, 30, 2);
+      }
+    }
+  },
+  { // Beach — sand & sea
+    sky: '#87ceeb', ground: '#d4a95a', groundTop: '#e8c878',
+    plat: '#a07840', platTop: '#c09850', platBorder: '#705828',
+    name: 'Beach', decor(ctx) {
+      ctx.fillStyle = '#6ab0d0';
+      ctx.fillRect(0, 0, W, 60);
+      ctx.fillStyle = 'rgba(255,255,255,0.3)';
+      ctx.fillRect(40, 20, 30, 4); ctx.fillRect(160, 35, 25, 3);
+      ctx.fillRect(800, 25, 35, 4); ctx.fillRect(600, 45, 20, 3);
+      ctx.fillStyle = '#c09850';
+      ctx.font = '18px serif';
+      for (let i = 0; i < 3; i++) ctx.fillText('~', 60 + i * 300, 440 + i * 8);
+    }
+  },
+  { // Playground — colorful rubber mats
+    sky: '#b8d4e8', ground: '#6a4a8a', groundTop: '#8a6aaa',
+    plat: '#d04040', platTop: '#e86060', platBorder: '#902828',
+    name: 'Playground', decor(ctx) {
+      ctx.fillStyle = 'rgba(255,255,255,0.1)';
+      ctx.beginPath(); ctx.arc(160, 520, 60, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(400, 540, 45, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(640, 510, 70, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(880, 550, 35, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#e8c040';
+      ctx.font = '30px sans-serif';
+      ctx.fillText('★', 60, 440);
+      ctx.fillText('★', 500, 410);
+      ctx.fillText('★', 880, 430);
+    }
+  },
+  { // Living room — wood floor indoors
+    sky: '#e8d8c8', ground: '#b8885a', groundTop: '#d4a870',
+    plat: '#604030', platTop: '#805040', platBorder: '#382018',
+    name: 'Living Room', decor(ctx) {
+      ctx.strokeStyle = '#c8a070';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 16; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i * 64, ground.y);
+        ctx.lineTo(i * 64, H);
+        ctx.stroke();
+      }
+      ctx.fillStyle = '#d0b090';
+      ctx.fillRect(0, 0, W, 30);
+      ctx.fillStyle = '#c0a080';
+      ctx.fillRect(0, 30, W, 8);
+    }
+  },
+  { // Moon — gray lunar surface
+    sky: '#0a0818', ground: '#6a6070', groundTop: '#8a8090',
+    plat: '#4a4850', platTop: '#6a6870', platBorder: '#2a2830',
+    name: 'Moon', decor(ctx) {
+      ctx.fillStyle = '#e8e8f0';
+      ctx.beginPath(); ctx.arc(840, 80, 50, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#c8c8d8';
+      ctx.beginPath(); ctx.arc(820, 70, 8, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(855, 95, 5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fff';
+      for (let i = 0; i < 30; i++) {
+        const sx = (i * 137 + 43) % W;
+        const sy = (i * 89 + 17) % (ground.y - 20);
+        const ss = 1 + (i % 3);
+        ctx.fillRect(sx, sy, ss, ss);
+      }
+      ctx.fillStyle = '#5a5870';
+      for (let i = 0; i < 4; i++) {
+        const cx = 60 + i * 260;
+        const cy = 570 + (i % 2) * 8;
+        ctx.beginPath(); ctx.arc(cx, cy, 6 + (i % 3) * 3, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+  },
+];
+
+let currentBg = null;
+
 function drawPlatforms() {
+  const bg = currentBg || BGS[0];
   for (const p of platforms) {
     if (p === ground) continue;
-    ctx.fillStyle = '#5a3a1a';
+    ctx.fillStyle = bg.plat;
     ctx.fillRect(p.x, p.y, p.w, p.h);
-    ctx.fillStyle = '#7a5a2a';
+    ctx.fillStyle = bg.platTop;
     ctx.fillRect(p.x, p.y, p.w, 3);
-    ctx.strokeStyle = '#3a2a0a';
+    ctx.strokeStyle = bg.platBorder;
     ctx.lineWidth = 1;
     ctx.strokeRect(p.x, p.y, p.w, p.h);
   }
@@ -562,16 +739,24 @@ function drawMatchScore() {
   ctx.fillStyle = '#fff';
   ctx.font = 'bold 18px monospace';
   ctx.textAlign = 'center';
-  ctx.fillText(`Dad ${dadRounds} — ${argusRounds} Argus`, W / 2, 20);
+  ctx.fillText(`Dad ${dadRounds} — ${argusRounds} Argus`, W / 2, 18);
+  if (currentLayout) {
+    ctx.fillStyle = '#888';
+    ctx.font = '11px monospace';
+    const bgName = currentBg ? currentBg.name : '';
+    ctx.fillText(`${currentLayout.name} / ${bgName}`, W / 2, 34);
+  }
 }
 
 function drawArena() {
-  ctx.fillStyle = '#3a7d44';
+  const bg = currentBg || BGS[0];
+  ctx.fillStyle = bg.sky;
   ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = '#4a3520';
+  ctx.fillStyle = bg.ground;
   ctx.fillRect(ground.x, ground.y, ground.w, ground.h);
-  ctx.fillStyle = '#5a4530';
+  ctx.fillStyle = bg.groundTop;
   ctx.fillRect(ground.x, ground.y, ground.w, 4);
+  bg.decor(ctx);
   drawPlatforms();
 }
 
@@ -685,6 +870,7 @@ loop();
 document.addEventListener('keydown', e => {
   if (e.key === ' ') {
     if (gameState === 'start') {
+      pickLayout();
       gameState = 'playing';
     } else if (gameState === 'matchEnd') {
       dadRounds = 0;
