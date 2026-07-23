@@ -508,6 +508,7 @@ function applyHit(attacker, defender) {
   defender.hp = Math.max(0, defender.hp - (attacker === DAD ? DAD_DMG : ARGUS_DMG));
   attacker.cooldown = COOLDOWN_DUR;
   defender.iframe = IFRAME_DUR;
+  attacker.iframe = IFRAME_DUR;
 
   const dx = defender.x - attacker.x || 1;
   const dy = defender.y - attacker.y || 1;
