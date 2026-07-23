@@ -8,6 +8,51 @@
 </head>
 <body>
   <canvas id="gameCanvas"></canvas>
+  <div id="settings">
+    <div id="settings-inner">
+      <div class="setting">
+        <label>Jump Height</label>
+        <input type="range" id="jumpSlider" min="1" max="15" value="8" step="0.5">
+        <span class="val" id="jumpVal">8</span>
+      </div>
+      <div class="setting">
+        <label>Gravity</label>
+        <input type="range" id="gravSlider" min="0.02" max="0.20" value="0.10" step="0.01">
+        <span class="val" id="gravVal">0.10</span>
+      </div>
+      <div class="setting">
+        <label>Ground Friction</label>
+        <input type="range" id="fricSlider" min="0.60" max="0.98" value="0.82" step="0.01">
+        <span class="val" id="fricVal">0.82</span>
+      </div>
+      <div class="setting">
+        <label>Air Friction</label>
+        <input type="range" id="airFricSlider" min="0.05" max="0.98" value="0.88" step="0.01">
+        <span class="val" id="airFricVal">0.88</span>
+      </div>
+      <div class="setting sep"></div>
+      <div class="setting">
+        <label>Dad Speed</label>
+        <input type="range" id="dadSpeedSlider" min="0.5" max="6.0" value="2.0" step="0.1">
+        <span class="val" id="dadSpeedVal">2.0</span>
+      </div>
+      <div class="setting">
+        <label>Argus Speed</label>
+        <input type="range" id="argusSpeedSlider" min="0.5" max="8.0" value="4.0" step="0.1">
+        <span class="val" id="argusSpeedVal">4.0</span>
+      </div>
+      <div class="setting">
+        <label>Dad Dmg</label>
+        <input type="range" id="dadDmgSlider" min="1" max="50" value="15" step="1">
+        <span class="val" id="dadDmgVal">15</span>
+      </div>
+      <div class="setting">
+        <label>Argus Dmg</label>
+        <input type="range" id="argusDmgSlider" min="1" max="50" value="10" step="1">
+        <span class="val" id="argusDmgVal">10</span>
+      </div>
+    </div>
+  </div>
   <script src="game.js"></script>
 </body>
 </html>

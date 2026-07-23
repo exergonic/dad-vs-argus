@@ -6,17 +6,17 @@ const H = 640;
 canvas.width = W;
 canvas.height = H;
 
-const GRAVITY = 0.45;
-const JUMP_VEL = -11;
+let GRAVITY = 0.45;
+let JUMP_VEL = -11;
 const COOLDOWN_DUR = 60;
 const IFRAME_DUR = 20;
-const DAD_DMG = 15;
-const ARGUS_DMG = 10;
+let DAD_DMG = 15;
+let ARGUS_DMG = 10;
 const MAX_HP = 100;
-const ACCEL = 0.55;
-const FRICTION = 0.82;
-const AIR_ACCEL = 0.3;
-const AIR_FRICTION = 0.88;
+let ACCEL = 0.55;
+let FRICTION = 0.82;
+let AIR_ACCEL = 0.3;
+let AIR_FRICTION = 0.88;
 
 const ground = { x: 0, y: 568, w: 960, h: 72 };
 const LAYOUTS = [
@@ -867,9 +867,67 @@ function loop() {
 loadSprites();
 loop();
 
+const settingsEl = document.getElementById('settings');
+const STORAGE_KEY = 'dadVsArgusConfig';
+
+const sliderDefs = [
+  { id: 'jumpSlider', valId: 'jumpVal', key: 'jump', default: 8, set: v => { JUMP_VEL = -v; } },
+  { id: 'gravSlider', valId: 'gravVal', key: 'gravity', default: 0.10, set: v => { GRAVITY = v; } },
+  { id: 'fricSlider', valId: 'fricVal', key: 'friction', default: 0.82, set: v => { FRICTION = v; } },
+  { id: 'airFricSlider', valId: 'airFricVal', key: 'airFriction', default: 0.88, set: v => { AIR_FRICTION = v; } },
+  { id: 'dadSpeedSlider', valId: 'dadSpeedVal', key: 'dadSpeed', default: 2.0, set: v => { DAD.speed = v; } },
+  { id: 'argusSpeedSlider', valId: 'argusSpeedVal', key: 'argusSpeed', default: 4.0, set: v => { ARGUS.speed = v; } },
+  { id: 'dadDmgSlider', valId: 'dadDmgVal', key: 'dadDmg', default: 15, set: v => { DAD_DMG = v; } },
+  { id: 'argusDmgSlider', valId: 'argusDmgVal', key: 'argusDmg', default: 10, set: v => { ARGUS_DMG = v; } },
+];
+
+function saveConfig() {
+  const cfg = {};
+  for (const s of sliderDefs) {
+    const el = document.getElementById(s.id);
+    cfg[s.key] = parseFloat(el.value);
+  }
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
+}
+
+function loadConfig() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return;
+  let cfg;
+  try { cfg = JSON.parse(raw); } catch { return; }
+  if (!cfg) return;
+  for (const s of sliderDefs) {
+    const val = cfg[s.key];
+    if (val === undefined || val === null) continue;
+    const el = document.getElementById(s.id);
+    const valEl = document.getElementById(s.valId);
+    el.value = val;
+    valEl.textContent = typeof val === 'number' && val % 1 !== 0 ? val.toFixed(2) : val;
+    s.set(val);
+  }
+}
+
+loadConfig();
+
+for (const s of sliderDefs) {
+  const el = document.getElementById(s.id);
+  const valEl = document.getElementById(s.valId);
+  el.addEventListener('input', () => {
+    const v = parseFloat(el.value);
+    valEl.textContent = v.toFixed(2);
+    s.set(v);
+    saveConfig();
+  });
+}
+
+function showSettings(show) {
+  settingsEl.classList.toggle('show', show);
+}
+
 document.addEventListener('keydown', e => {
   if (e.key === ' ') {
     if (gameState === 'start') {
+      showSettings(false);
       pickLayout();
       gameState = 'playing';
     } else if (gameState === 'matchEnd') {
@@ -880,3 +938,5 @@ document.addEventListener('keydown', e => {
     e.preventDefault();
   }
 });
+
+showSettings(true);

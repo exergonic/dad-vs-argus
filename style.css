@@ -18,3 +18,60 @@ canvas {
   width: 100%;
   height: 100%;
 }
+
+#settings {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: none;
+  background: rgba(0,0,0,0.75);
+  border: 1px solid #555;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-family: monospace;
+  font-size: 12px;
+  color: #ccc;
+  user-select: none;
+}
+
+#settings.show { display: block; }
+
+#settings-inner {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+}
+
+.setting {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.setting label {
+  white-space: nowrap;
+  color: #aaa;
+}
+
+.setting input[type=range] {
+  width: 80px;
+  height: 4px;
+  accent-color: #ffd700;
+  cursor: pointer;
+}
+
+.setting .val {
+  color: #ffd700;
+  width: 34px;
+  text-align: right;
+  font-weight: bold;
+}
+
+.setting.sep {
+  width: 1px;
+  height: 24px;
+  background: #555;
+  padding: 0;
+}
