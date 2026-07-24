@@ -154,6 +154,19 @@ function playRandom(list) {
 
 function playFart() { playRandom(fartSounds); }
 
+const argusHitSound = 'assets/sounds/monkey-mocking-laugh-107.wav';
+const argusWinSound = 'assets/sounds/monkey-applause_argus-wins.wav';
+const dadWinSound = 'assets/sounds/monkey-thumping-chest_dad-wins.wav';
+const giggleSound = 'assets/sounds/monkey-mocking-and-giggling-108.wav';
+
+function playFile(path) {
+  const a = new Audio(path);
+  a.volume = 0.5;
+  a.play().catch(() => {});
+}
+
+let giggleTimer = 0;
+
 // ---------- Particles ----------
 const particles = [];
 const fartRings = [];
@@ -524,6 +537,7 @@ function applyHit(attacker, defender) {
   spawnFartRing(dcx, dcy, color);
 
   playFart();
+  if (attacker === ARGUS) { const a = new Audio(argusHitSound); a.volume = 0.25; a.play().catch(() => {}); }
   triggerShake();
   showTaunt();
 }
@@ -550,6 +564,7 @@ function pickLayout() {
   currentLayout = layout;
   currentBg = BGS[Math.floor(Math.random() * BGS.length)];
   platforms = [ground, ...layout.platforms];
+  giggleTimer = 120;
 }
 
 function resetRound() {
@@ -581,6 +596,11 @@ function update() {
     updateShake();
     if (tauntTimer > 0) tauntTimer--;
 
+    if (--giggleTimer <= 0) {
+      giggleTimer = 1800 + Math.floor(Math.random() * 1200);
+      const a = new Audio(giggleSound); a.volume = 0.2; a.play().catch(() => {});
+    }
+
     if (DAD.hp === 0 || ARGUS.hp === 0) {
       roundTimer = 120;
       if (DAD.hp === 0) argusRounds++; else dadRounds++;
@@ -590,7 +610,10 @@ function update() {
     updateParticles();
     updateShake();
     if (--roundTimer <= 0) {
-      if (dadRounds >= 2 || argusRounds >= 2) gameState = 'matchEnd';
+      if (dadRounds >= 2 || argusRounds >= 2) {
+        gameState = 'matchEnd';
+        playFile(dadRounds >= 2 ? dadWinSound : argusWinSound);
+      }
       else resetRound();
     }
   }
