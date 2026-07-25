@@ -787,8 +787,10 @@ function draw() {
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 16px monospace';
     ctx.fillText('Dad', W / 2 - 150, H / 2 - 30);
-    ctx.fillStyle = '#2266cc';
-    ctx.fillRect(W / 2 - 177, H / 2 - 62, 44, 44);
+    ctx.save();
+    ctx.translate(W / 2 - 155, H / 2 - 40);
+    drawCanvasCharacter({ w: 44, h: 44, animFrame: 0, iframe: 0 }, 'Dad');
+    ctx.restore();
     ctx.fillStyle = '#ccc';
     ctx.font = '14px monospace';
     ctx.fillText('A / D  move    W  jump', W / 2 - 150, H / 2);
@@ -798,8 +800,10 @@ function draw() {
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 16px monospace';
     ctx.fillText('Argus', W / 2 + 150, H / 2 - 30);
-    ctx.fillStyle = '#cc4422';
-    ctx.fillRect(W / 2 + 123, H / 2 - 62, 32, 32);
+    ctx.save();
+    ctx.translate(W / 2 + 139, H / 2 - 46);
+    drawCanvasCharacter({ w: 32, h: 32, animFrame: 0, iframe: 0 }, 'Argus');
+    ctx.restore();
     ctx.fillStyle = '#ccc';
     ctx.font = '14px monospace';
     ctx.fillText('← / →  move    ↑  jump', W / 2 + 150, H / 2);
