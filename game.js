@@ -57,45 +57,6 @@ const LAYOUTS = [
 let platforms = [ground];
 
 // ---------- Sprite loading ----------
-const WAD = {  // Wad of sprites
-  dad: { run: [], jump: [], ko: [] },
-  argus: { idle: [], run: [], jump: [], hurt: [], dead: [] }
-};
-
-const SPRITE_CFG = {
-  dad: {
-    run:  { path: 'assets/images/bearded_man/run/run_', count: 43, pad: true },
-    jump: { path: 'assets/images/bearded_man/jump/j_',   count: 25, pad: true },
-    ko:   { path: 'assets/images/bearded_man/KO/ko_',     count: 43, pad: true },
-  },
-  argus: {
-    idle: { path: 'assets/images/png/Idle (', count: 10, pad: false },
-    run:  { path: 'assets/images/png/Run (',  count: 8,  pad: false },
-    jump: { path: 'assets/images/png/Jump (', count: 12, pad: false },
-    hurt: { path: 'assets/images/png/Hurt (', count: 8,  pad: false },
-    dead: { path: 'assets/images/png/Dead (', count: 10, pad: false },
-  }
-};
-
-let spritesLoaded = false;
-
-function loadSprites() {
-  let total = 0, loaded = 0;
-  for (const char of ['dad', 'argus']) {
-    for (const [name, cfg] of Object.entries(SPRITE_CFG[char])) {
-      total += cfg.count;
-      const arr = WAD[char][name];
-      for (let i = 0; i < cfg.count; i++) {
-        const idx = cfg.pad ? String(i).padStart(3, '0') : (i + 1);
-        const img = new Image();
-        img.onload = () => { loaded++; if (loaded >= total) spritesLoaded = true; };
-        img.src = cfg.path + idx + '.png';
-        arr.push(img);
-      }
-    }
-  }
-}
-
 // ---------- Players ----------
 function makePlayer(x, y, w, h, speed, color, label, jumpKey, scale) {
   return {
@@ -267,11 +228,6 @@ function rectOverlap(a, b) {
 }
 
 // ---------- Sprite rendering ----------
-const ANIM_SPEED = {
-  dad:  { run: 4, jump: 5, ko: 8 },
-  argus: { idle: 10, run: 5, jump: 6, hurt: 4, dead: 10 }
-};
-
 function getAnimState(p, key) {
   if (key === 'dad') {
     if (p.hp <= 0) return 'ko';
@@ -286,11 +242,9 @@ function getAnimState(p, key) {
   return 'idle';
 }
 
-function updateAnim(p, character) {
-  const key = character === DAD ? 'dad' : 'argus';
+function updateAnim(p) {
+  const key = p.label === 'Dad' ? 'dad' : 'argus';
   const state = getAnimState(p, key);
-  const frames = WAD[key][state];
-  const speed = ANIM_SPEED[key][state] || 6;
 
   if (state !== p.anim) {
     p.anim = state;
@@ -299,9 +253,9 @@ function updateAnim(p, character) {
   }
 
   p.animTimer++;
-  if (frames && p.animTimer >= speed) {
+  if (p.animTimer >= 6) {
     p.animTimer = 0;
-    p.animFrame = (p.animFrame + 1) % (frames.length || 1);
+    p.animFrame++;
   }
 }
 
@@ -401,12 +355,7 @@ function drawCanvasCharacter(p, label) {
   ctx.fillRect(eyeOff - eyeS / 2, eyeY - eyeS / 2, eyeS, eyeS);
 }
 
-function drawSprite(p, character) {
-  const key = character === DAD ? 'dad' : 'argus';
-  const state = p.anim;
-  const frames = WAD[key][state];
-  const frame = frames && frames.length ? frames[p.animFrame] : null;
-
+function drawSprite(p) {
   ctx.save();
   const cx = p.x + p.w / 2;
   const cy = p.y + p.h / 2;
@@ -417,24 +366,11 @@ function drawSprite(p, character) {
   ctx.translate(cx, cy);
   ctx.scale(p.facing * sq, sqY);
 
-  // Canvas-drawn character (always visible, no file loading needed)
   if (p.iframe > 0 && Math.floor(p.iframe / 4) % 2 === 0) {
     ctx.globalAlpha = 0.4;
   }
   drawCanvasCharacter(p, p.label);
   ctx.restore();
-
-  // PNG sprite overlay (renders on top if images loaded)
-  if (spritesLoaded && frame && frame.complete && frame.naturalWidth > 0) {
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.scale(p.facing * sq, sqY);
-    const s = p.scale;
-    const sw = Math.round(frame.naturalWidth * s);
-    const sh = Math.round(frame.naturalHeight * s);
-    ctx.drawImage(frame, -sw / 2, -sh / 2, sw, sh);
-    ctx.restore();
-  }
 
   if (p.cooldown > 0) {
     const pct = p.cooldown / COOLDOWN_DUR;
@@ -589,8 +525,8 @@ function update() {
   if (gameState === 'playing') {
     applyPhysics(DAD);
     applyPhysics(ARGUS);
-    updateAnim(DAD, DAD);
-    updateAnim(ARGUS, ARGUS);
+    updateAnim(DAD);
+    updateAnim(ARGUS);
     checkHits();
     updateParticles();
     updateShake();
@@ -799,8 +735,8 @@ function draw() {
   drawHpBar(ARGUS, false);
   drawMatchScore();
 
-  drawSprite(DAD, DAD);
-  drawSprite(ARGUS, ARGUS);
+  drawSprite(DAD);
+  drawSprite(ARGUS);
   drawParticles();
 
   if (activeTaunt && tauntTimer > 0) {
@@ -888,7 +824,6 @@ function loop() {
   requestAnimationFrame(loop);
 }
 
-loadSprites();
 loop();
 
 const settingsEl = document.getElementById('settings');
