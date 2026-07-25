@@ -784,9 +784,6 @@ function draw() {
     ctx.textAlign = 'center';
     ctx.fillText('Dad vs Argus', W / 2, H / 2 - 100);
 
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 16px monospace';
-    ctx.fillText('Dad', W / 2 - 150, H / 2 - 30);
     ctx.save();
     ctx.translate(W / 2 - 155, H / 2 - 40);
     drawCanvasCharacter({ w: 44, h: 44, animFrame: 0, iframe: 0 }, 'Dad');
@@ -797,9 +794,6 @@ function draw() {
     ctx.font = '12px monospace';
     ctx.fillText('Big · Slow · 15 dmg', W / 2 - 150, H / 2 + 20);
 
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 16px monospace';
-    ctx.fillText('Argus', W / 2 + 150, H / 2 - 30);
     ctx.save();
     ctx.translate(W / 2 + 139, H / 2 - 46);
     drawCanvasCharacter({ w: 32, h: 32, animFrame: 0, iframe: 0 }, 'Argus');
