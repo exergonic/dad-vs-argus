@@ -84,7 +84,7 @@ const keys = new Set();
 
 document.addEventListener('keydown', e => {
   keys.add(e.key.toLowerCase());
-  if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'control'].includes(e.key.toLowerCase())) {
+  if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'shift'].includes(e.key.toLowerCase())) {
     e.preventDefault();
   }
 });
@@ -585,7 +585,7 @@ function update() {
     updateAnim(ARGUS);
     checkHits();
     updateCharge(DAD, ' ');
-    updateCharge(ARGUS, 'control');
+    updateCharge(ARGUS, 'shift');
     updateParticles();
     updateShake();
     if (tauntTimer > 0) tauntTimer--;
