@@ -12,6 +12,11 @@ const COOLDOWN_DUR = 60;
 const IFRAME_DUR = 20;
 let DAD_DMG = 15;
 let ARGUS_DMG = 10;
+let CHARGE_ENABLED = true;
+let CHARGE_RATE = 1.5;
+let CHARGE_RANGE = 150;
+let CHARGE_MAX_MULT = 3;
+let CHARGE_MOVE_SPEED = 0.3;
 const MAX_HP = 100;
 let ACCEL = 0.55;
 let FRICTION = 0.82;
@@ -67,6 +72,7 @@ function makePlayer(x, y, w, h, speed, color, label, jumpKey, scale) {
     squash: 0,
     vx: 0, vy: 0, onGround: false,
     facing: 1,
+    charge: 0,
     anim: 'idle', animFrame: 0, animTimer: 0
   };
 }
@@ -78,7 +84,7 @@ const keys = new Set();
 
 document.addEventListener('keydown', e => {
   keys.add(e.key.toLowerCase());
-  if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(e.key.toLowerCase())) {
+  if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' ', 'control'].includes(e.key.toLowerCase())) {
     e.preventDefault();
   }
 });
@@ -387,6 +393,21 @@ function drawSprite(p) {
     ctx.lineWidth = 1;
     ctx.beginPath(); ctx.arc(rx, ry, rr, 0, Math.PI * 2); ctx.stroke();
   }
+
+  if (CHARGE_ENABLED && p.charge > 0) {
+    const barX = p.x;
+    const barY = p.y - 28;
+    const barW = p.w * (p.charge / 100);
+    const barH = 4;
+    const t = p.charge / 100;
+    const hue = 60 - t * 60;
+    const light = 50 + (1 - t) * 40;
+    ctx.fillStyle = `hsl(${hue}, 100%, ${light}%)`;
+    ctx.fillRect(barX, barY, barW, barH);
+    ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(barX, barY, p.w, barH);
+  }
 }
 
 // ---------- Physics ----------
@@ -402,7 +423,7 @@ function applyPhysics(p) {
   const onGround = p.onGround;
   const accel = onGround ? ACCEL : AIR_ACCEL;
   const friction = onGround ? FRICTION : AIR_FRICTION;
-  const targetVx = dx * p.speed;
+  const targetVx = dx * p.speed * (p.charge > 0 ? CHARGE_MOVE_SPEED : 1);
   if (targetVx !== 0) {
     if (p.vx < targetVx) p.vx = Math.min(p.vx + accel, targetVx);
     else if (p.vx > targetVx) p.vx = Math.max(p.vx - accel, targetVx);
@@ -453,8 +474,8 @@ function applyPhysics(p) {
 }
 
 // ---------- Combat ----------
-function applyHit(attacker, defender) {
-  defender.hp = Math.max(0, defender.hp - (attacker === DAD ? DAD_DMG : ARGUS_DMG));
+function applyHit(attacker, defender, extraDmg) {
+  defender.hp = Math.max(0, defender.hp - (attacker === DAD ? DAD_DMG : ARGUS_DMG) - (extraDmg || 0));
   attacker.cooldown = COOLDOWN_DUR;
   defender.iframe = IFRAME_DUR;
   attacker.iframe = IFRAME_DUR;
@@ -488,6 +509,40 @@ function checkHits() {
   else if (argusAbove && ARGUS.cooldown === 0 && DAD.iframe === 0) applyHit(ARGUS, DAD);
 }
 
+// ---------- Charge attack ----------
+function updateCharge(p, chargeKey) {
+  if (!CHARGE_ENABLED || p.cooldown > 0) { p.charge = 0; return; }
+
+  if (keys.has(chargeKey)) {
+    p.charge = Math.min(100, p.charge + CHARGE_RATE);
+    return;
+  }
+
+  if (p.charge <= 0) return;
+
+  const target = p === DAD ? ARGUS : DAD;
+  const cx = p.x + p.w / 2;
+  const cy = p.y + p.h / 2;
+  const tx = target.x + target.w / 2;
+  const ty = target.y + target.h / 2;
+  const dist = Math.hypot(tx - cx, ty - cy);
+  const color = p === DAD ? '#6b8f3a' : '#8a6f2a';
+
+  spawnFartCloud(cx, cy, color);
+  spawnFartRing(cx, cy, color);
+  playFart();
+
+  if (dist <= CHARGE_RANGE) {
+    const dmg = Math.round((p === DAD ? DAD_DMG : ARGUS_DMG) * CHARGE_MAX_MULT * (p.charge / 100));
+    applyHit(p, target, dmg);
+  }
+
+  p.cooldown = COOLDOWN_DUR;
+  p.charge = 0;
+  triggerShake();
+  if (p === ARGUS) { const a = new Audio(argusHitSound); a.volume = 0.25; a.play().catch(() => {}); }
+}
+
 // ---------- Round / match ----------
 let dadRounds = 0;
 let argusRounds = 0;
@@ -516,6 +571,7 @@ function resetRound() {
   DAD.knockbackX = 0; DAD.knockbackY = 0;
   ARGUS.knockbackX = 0; ARGUS.knockbackY = 0;
   DAD.squash = 0; ARGUS.squash = 0;
+  DAD.charge = 0; ARGUS.charge = 0;
   gameState = 'playing';
   particles.length = 0;
   fartRings.length = 0;
@@ -528,6 +584,8 @@ function update() {
     updateAnim(DAD);
     updateAnim(ARGUS);
     checkHits();
+    updateCharge(DAD, ' ');
+    updateCharge(ARGUS, 'control');
     updateParticles();
     updateShake();
     if (tauntTimer > 0) tauntTimer--;
@@ -836,6 +894,10 @@ const sliderDefs = [
   { id: 'argusSpeedSlider', valId: 'argusSpeedVal', key: 'argusSpeed', default: 4.0, set: v => { ARGUS.speed = v; } },
   { id: 'dadDmgSlider', valId: 'dadDmgVal', key: 'dadDmg', default: 15, set: v => { DAD_DMG = v; } },
   { id: 'argusDmgSlider', valId: 'argusDmgVal', key: 'argusDmg', default: 10, set: v => { ARGUS_DMG = v; } },
+  { id: 'chargeRateSlider', valId: 'chargeRateVal', key: 'chargeRate', default: 1.5, set: v => { CHARGE_RATE = v; } },
+  { id: 'chargeRangeSlider', valId: 'chargeRangeVal', key: 'chargeRange', default: 150, set: v => { CHARGE_RANGE = v; } },
+  { id: 'chargeMaxMultSlider', valId: 'chargeMaxMultVal', key: 'chargeMaxMult', default: 3, set: v => { CHARGE_MAX_MULT = v; } },
+  { id: 'chargeMoveSpeedSlider', valId: 'chargeMoveSpeedVal', key: 'chargeMoveSpeed', default: 0.3, set: v => { CHARGE_MOVE_SPEED = v; } },
 ];
 
 function saveConfig() {
@@ -844,6 +906,7 @@ function saveConfig() {
     const el = document.getElementById(s.id);
     cfg[s.key] = parseFloat(el.value);
   }
+  cfg.chargeEnabled = document.getElementById('chargeToggle').checked;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
 }
 
@@ -862,6 +925,10 @@ function loadConfig() {
     valEl.textContent = typeof val === 'number' && val % 1 !== 0 ? val.toFixed(2) : val;
     s.set(val);
   }
+  if (cfg.chargeEnabled !== undefined) {
+    document.getElementById('chargeToggle').checked = cfg.chargeEnabled;
+    CHARGE_ENABLED = cfg.chargeEnabled;
+  }
 }
 
 loadConfig();
@@ -876,6 +943,11 @@ for (const s of sliderDefs) {
     saveConfig();
   });
 }
+
+document.getElementById('chargeToggle').addEventListener('change', function() {
+  CHARGE_ENABLED = this.checked;
+  saveConfig();
+});
 
 function showSettings(show) {
   settingsEl.classList.toggle('show', show);

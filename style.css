@@ -75,3 +75,15 @@ canvas {
   background: #555;
   padding: 0;
 }
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #aaa;
+}
+
+.toggle-label input[type=checkbox] {
+  accent-color: #ffd700;
+  cursor: pointer;
+}
