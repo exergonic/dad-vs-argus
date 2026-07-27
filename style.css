@@ -21,26 +21,28 @@ canvas {
 
 #settings {
   position: fixed;
-  bottom: 20px;
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
   z-index: 10;
   display: none;
-  background: rgba(0,0,0,0.75);
+  background: rgba(0,0,0,0.85);
   border: 1px solid #555;
-  border-radius: 8px;
-  padding: 10px 16px;
+  border-radius: 10px;
+  padding: 20px 28px;
   font-family: monospace;
   font-size: 12px;
   color: #ccc;
   user-select: none;
+  min-width: 480px;
 }
 
 #settings.show { display: block; }
 
 #settings-inner {
-  display: flex;
-  gap: 18px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 24px;
   align-items: center;
 }
 
@@ -69,13 +71,6 @@ canvas {
   font-weight: bold;
 }
 
-.setting.sep {
-  width: 1px;
-  height: 24px;
-  background: #555;
-  padding: 0;
-}
-
 .toggle-label {
   display: flex;
   align-items: center;
@@ -86,4 +81,24 @@ canvas {
 .toggle-label input[type=checkbox] {
   accent-color: #ffd700;
   cursor: pointer;
+}
+
+.section-label {
+  grid-column: 1 / -1;
+  color: #ffd700;
+  font-weight: bold;
+  font-size: 13px;
+  padding-top: 8px;
+  border-top: 1px solid #444;
+  margin-top: 4px;
+}
+
+.section-label:first-of-type { border-top: none; margin-top: 0; padding-top: 0; }
+
+.close-hint {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: #666;
+  font-size: 11px;
+  padding-top: 6px;
 }

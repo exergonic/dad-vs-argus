@@ -599,6 +599,7 @@ function update() {
       roundTimer = 120;
       if (DAD.hp === 0) argusRounds++; else dadRounds++;
       gameState = 'roundEnd';
+      showSettings(true);
     }
   } else if (gameState === 'roundEnd') {
     updateParticles();
@@ -954,6 +955,10 @@ function showSettings(show) {
 }
 
 document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && gameState !== 'playing') {
+    showSettings(!settingsEl.classList.contains('show'));
+    e.preventDefault();
+  }
   if (e.key === ' ') {
     if (gameState === 'start') {
       showSettings(false);
