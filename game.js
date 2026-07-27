@@ -599,7 +599,6 @@ function update() {
       roundTimer = 120;
       if (DAD.hp === 0) argusRounds++; else dadRounds++;
       gameState = 'roundEnd';
-      showSettings(true);
     }
   } else if (gameState === 'roundEnd') {
     updateParticles();
@@ -869,6 +868,9 @@ function draw() {
     ctx.font = '14px monospace';
     ctx.fillStyle = '#8f8';
     ctx.fillText('Jump on the other player to fart!', W / 2, H / 2 + 110);
+    ctx.font = '12px monospace';
+    ctx.fillStyle = '#666';
+    ctx.fillText('Press ESCAPE for Options', W / 2, H / 2 + 132);
   }
 
   ctx.restore();
@@ -972,5 +974,3 @@ document.addEventListener('keydown', e => {
     e.preventDefault();
   }
 });
-
-showSettings(true);
