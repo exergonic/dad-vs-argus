@@ -532,8 +532,17 @@ function updateCharge(p, chargeKey) {
   spawnFartRing(cx, cy, color);
   playFart();
 
+  // Damage scales with both charge level AND proximity:
+  //   - at point-blank: baseDmg × CHARGE_MAX_MULT × chargeFraction
+  //   - at CHARGE_RANGE: baseDmg × 1.0 × chargeFraction (no bonus, but still hurts)
+  //   - beyond CHARGE_RANGE: no hit
   if (dist <= CHARGE_RANGE) {
-    const dmg = Math.round((p === DAD ? DAD_DMG : ARGUS_DMG) * CHARGE_MAX_MULT * (p.charge / 100));
+    const chargeFraction = p.charge / 100;
+    // proximityBonus goes from (CHARGE_MAX_MULT - 1) at dist=0 down to 0 at dist=CHARGE_RANGE
+    const proximityBonus = (1 - dist / CHARGE_RANGE) * (CHARGE_MAX_MULT - 1);
+    const multiplier = 1 + proximityBonus;
+    const baseDmg = p === DAD ? DAD_DMG : ARGUS_DMG;
+    const dmg = Math.round(baseDmg * multiplier * chargeFraction);
     applyHit(p, target, dmg);
   }
 
