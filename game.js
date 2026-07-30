@@ -532,17 +532,19 @@ function updateCharge(p, chargeKey) {
   spawnFartRing(cx, cy, color);
   playFart();
 
-  // Damage scales with both charge level AND proximity:
-  //   - at point-blank: baseDmg × CHARGE_MAX_MULT × chargeFraction
-  //   - at CHARGE_RANGE: baseDmg × 1.0 × chargeFraction (no bonus, but still hurts)
-  //   - beyond CHARGE_RANGE: no hit
+  // Damage scales with charge level AND proximity, but never exceeds
+  // the flat stomp damage (baseDmg at full charge).
+  //   - at point-blank (dist=0): baseDmg × chargeFraction  (= stomp at full charge)
+  //   - at CHARGE_RANGE:          baseDmg × chargeFraction / CHARGE_MAX_MULT
+  //   - beyond CHARGE_RANGE:      no hit
+  // CHARGE_MAX_MULT controls the falloff ratio, not a multiplier above stomp.
   if (dist <= CHARGE_RANGE) {
     const chargeFraction = p.charge / 100;
-    // proximityBonus goes from (CHARGE_MAX_MULT - 1) at dist=0 down to 0 at dist=CHARGE_RANGE
-    const proximityBonus = (1 - dist / CHARGE_RANGE) * (CHARGE_MAX_MULT - 1);
-    const multiplier = 1 + proximityBonus;
     const baseDmg = p === DAD ? DAD_DMG : ARGUS_DMG;
-    const dmg = Math.round(baseDmg * multiplier * chargeFraction);
+    // proximityFactor goes from 1.0 at dist=0 down to 1/CHARGE_MAX_MULT at dist=CHARGE_RANGE
+    const minFactor = 1 / CHARGE_MAX_MULT;
+    const proximityFactor = 1 - (1 - minFactor) * (dist / CHARGE_RANGE);
+    const dmg = Math.round(baseDmg * proximityFactor * chargeFraction);
     applyHit(p, target, dmg);
   }
 
